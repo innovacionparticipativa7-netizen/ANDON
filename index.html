@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tablero Andon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ===== CONFIGURACION: cambia aqui si usas otra base de datos ===== */
+  /* (la URL real va en el <script> de abajo) */
+
+  :root {
+    --navy: #00345F;
+    --navy-deep: #00233F;
+    --panel: #0A4675;
+    --line: #1D5C8C;
+    --text: #EAF2F8;
+    --muted: #9DB8CE;
+    --signal: #FFC21A;   /* amarillo de seguridad */
+    --alert: #FF4B3E;
+    --ok: #2BD46A;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --navy: #F2F6FA; --navy-deep: #FFFFFF; --panel: #FFFFFF;
+      --line: #C9D8E5; --text: #0E2A42; --muted: #56718A;
+      --signal: #C98E00;
+    }
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; background: var(--navy); color: var(--text);
+    font: 16px/1.5 "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+
+  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+  h1 {
+    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-weight: 700; font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1; margin: 0;
+  }
+  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .95rem; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+  .status[data-s="ok"] .dot { background: var(--ok); }
+  .status[data-s="err"] .dot { background: var(--alert); }
+
+  /* Estaciones: cada Andon es una torre de señal */
+  .stations { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 36px; }
+  .station {
+    position: relative; background: var(--panel); border: 1px solid var(--line);
+    border-left: 8px solid var(--line); border-radius: 6px; padding: 14px 16px;
+    text-align: left; color: inherit; font: inherit; cursor: pointer;
+  }
+  .station[aria-pressed="true"] { outline: 2px solid var(--signal); outline-offset: 2px; }
+  .station.recent { border-left-color: var(--signal); }
+  .station.flash { animation: flash 1.6s ease-out; }
+  @keyframes flash { 0% { background: var(--signal); color: #1a1300; } 100% { background: var(--panel); } }
+  .station h2 { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 1.5rem; margin: 0 0 4px; }
+  .station .last { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 2.4rem; font-weight: 700; line-height: 1.05; }
+  .station .meta { color: var(--muted); font-size: .9rem; }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .toolbar h2 { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 1.6rem; margin: 0 auto 0 0; }
+  input, button.btn {
+    font: inherit; color: var(--text); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px;
+  }
+  button.btn { cursor: pointer; font-weight: 600; }
+  button.btn:hover { border-color: var(--signal); }
+  :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+  .table-box { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--navy-deep); }
+  table { width: 100%; border-collapse: collapse; min-width: 480px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: .9rem; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.code { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .empty { padding: 32px 14px; color: var(--muted); text-align: center; }
+
+  @media (prefers-reduced-motion: reduce) { .station.flash { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Tablero Andon</h1>
+    <div class="status" id="status" data-s="wait"><span class="dot"></span><span id="statusText">Conectando…</span></div>
+  </header>
+
+  <section class="stations" id="stations" aria-label="Estaciones"></section>
+
+  <section>
+    <div class="toolbar">
+      <h2 id="listTitle">Todos los registros</h2>
+      <input id="search" type="search" placeholder="Buscar código" aria-label="Buscar código">
+      <button class="btn" id="clearFilter" hidden>Ver todas las estaciones</button>
+      <button class="btn" id="csv">Descargar CSV</button>
+    </div>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Hora</th><th>Estación</th><th>Código</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+// ===== CONFIGURACION =====
+const FIREBASE_URL = "https://andon-d7b0b-default-rtdb.firebaseio.com";
+const RUTA = "codigos";          // misma ruta que usa el ESP32
+const MAX_REGISTROS = 500;       // cuantos registros recientes cargar
+const MINUTOS_RECIENTE = 10;     // una estación se marca en amarillo si reportó hace menos de esto
+
+// ===== ESTADO =====
+let datos = {};                  // { pushId: {andon, codigo, hora} }
+let filtroAndon = null;
+let cargaInicial = true;
+
+const $ = (id) => document.getElementById(id);
+const fmt = new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "medium" });
+
+function setStatus(s, txt) { $("status").dataset.s = s; $("statusText").textContent = txt; }
+
+// ===== CONEXION EN TIEMPO REAL (REST streaming de Firebase) =====
+function conectar() {
+  const q = `orderBy=${encodeURIComponent('"$key"')}&limitToLast=${MAX_REGISTROS}`;
+  const es = new EventSource(`${FIREBASE_URL}/${RUTA}.json?${q}`);
+
+  es.addEventListener("put", (ev) => {
+    const { path, data } = JSON.parse(ev.data);
+    if (path === "/") {
+      datos = data || {};
+    } else {
+      const partes = path.split("/").filter(Boolean);
+      const id = partes[0];
+      if (partes.length === 1) {
+        if (data === null) delete datos[id];
+        else { datos[id] = data; if (!cargaInicial) destellar(data.andon); }
+      } else {
+        datos[id] = { ...(datos[id] || {}), [partes[1]]: data };
+      }
+    }
+    cargaInicial = false;
+    setStatus("ok", "En vivo");
+    render();
+  });
+
+  es.addEventListener("patch", (ev) => {
+    const { path, data } = JSON.parse(ev.data);
+    if (path === "/" && data) { Object.assign(datos, data); render(); }
+  });
+
+  es.addEventListener("cancel", () => setStatus("err", "Sin permiso de lectura. Revisa las reglas de Firebase."));
+  es.onerror = () => setStatus("err", "Conexión perdida, reintentando…");
+}
+
+// ===== RENDER =====
+function lista() {
+  return Object.entries(datos)
+    .map(([id, r]) => ({ id, andon: r.andon || "?", codigo: String(r.codigo ?? ""), hora: Number(r.hora) || 0 }))
+    .sort((a, b) => b.hora - a.hora);
+}
+
+function render() {
+  const todos = lista();
+
+  // Tarjetas por estación
+  const porAndon = {};
+  for (const r of todos) {
+    const s = porAndon[r.andon] ||= { total: 0, ultimo: r };
+    s.total++;
+  }
+  const ahora = Date.now();
+  $("stations").innerHTML = Object.keys(porAndon).sort().map((a) => {
+    const s = porAndon[a];
+    const reciente = ahora - s.ultimo.hora < MINUTOS_RECIENTE * 60000;
+    return `<button class="station ${reciente ? "recent" : ""}" data-andon="${esc(a)}"
+              aria-pressed="${filtroAndon === a}">
+              <h2>${esc(a)}</h2>
+              <div class="last">${esc(s.ultimo.codigo)}</div>
+              <div class="meta">${s.ultimo.hora ? fmt.format(s.ultimo.hora) : "sin hora"} · ${s.total} registros</div>
+            </button>`;
+  }).join("") || `<p class="meta">Aún no hay estaciones reportando.</p>`;
+
+  // Tabla
+  const texto = $("search").value.trim();
+  const filtrados = todos.filter((r) =>
+    (!filtroAndon || r.andon === filtroAndon) && (!texto || r.codigo.includes(texto)));
+  $("rows").innerHTML = filtrados.length
+    ? filtrados.map((r) => `<tr><td>${r.hora ? fmt.format(r.hora) : "—"}</td><td>${esc(r.andon)}</td><td class="code">${esc(r.codigo)}</td></tr>`).join("")
+    : `<tr><td colspan="3" class="empty">No hay registros que coincidan. Prueba con otro código o quita el filtro.</td></tr>`;
+
+  $("listTitle").textContent = filtroAndon ? `Registros de ${filtroAndon}` : "Todos los registros";
+  $("clearFilter").hidden = !filtroAndon;
+}
+
+function destellar(andon) {
+  requestAnimationFrame(() => {
+    const el = document.querySelector(`.station[data-andon="${CSS.escape(andon || "?")}"]`);
+    if (el) { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+  });
+}
+
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+// ===== EVENTOS =====
+$("stations").addEventListener("click", (e) => {
+  const b = e.target.closest(".station"); if (!b) return;
+  filtroAndon = filtroAndon === b.dataset.andon ? null : b.dataset.andon;
+  render();
+});
+$("clearFilter").addEventListener("click", () => { filtroAndon = null; render(); });
+$("search").addEventListener("input", render);
+$("csv").addEventListener("click", () => {
+  const filas = [["fecha", "andon", "codigo"], ...lista().map((r) => [r.hora ? new Date(r.hora).toISOString() : "", r.andon, r.codigo])];
+  const csv = filas.map((f) => f.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "andon.csv"; a.click();
+});
+setInterval(render, 60000);   // refresca el color "reciente" cada minuto
+
+conectar();
+</script>
+</body>
+</html>
