@@ -8,103 +8,99 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  /* ===== CONFIGURACION: cambia aqui si usas otra base de datos ===== */
-  /* (la URL real va en el <script> de abajo) */
-
   :root {
-    --navy: #00345F;
-    --navy-deep: #00233F;
-    --panel: #0A4675;
-    --line: #1D5C8C;
-    --text: #EAF2F8;
-    --muted: #9DB8CE;
-    --signal: #FFC21A;   /* amarillo de seguridad */
-    --alert: #FF4B3E;
-    --ok: #2BD46A;
+    --navy: #00345F; --deep: #00233F; --panel: #0A4675; --line: #1D5C8C;
+    --text: #EAF2F8; --muted: #9DB8CE; --signal: #FFC21A;
+    --alert: #FF4B3E; --ok: #2BD46A;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      --navy: #F2F6FA; --navy-deep: #FFFFFF; --panel: #FFFFFF;
-      --line: #C9D8E5; --text: #0E2A42; --muted: #56718A;
-      --signal: #C98E00;
-    }
-  }
   *, *::before, *::after { box-sizing: inherit; }
-  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
-  body {
-    margin: 0; background: var(--navy); color: var(--text);
-    font: 16px/1.5 "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
-  }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+  body { margin: 0; background: var(--navy); color: var(--text);
+    font: 16px/1.5 "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 20px 48px; }
+  .cond { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; }
 
-  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
-  h1 {
-    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
-    font-weight: 700; font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1; margin: 0;
-  }
-  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .95rem; }
+  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+  h1 { font-weight: 700; font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1; margin: 0; }
+  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); }
   .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
   .status[data-s="ok"] .dot { background: var(--ok); }
   .status[data-s="err"] .dot { background: var(--alert); }
 
-  /* Estaciones: cada Andon es una torre de señal */
-  .stations { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 36px; }
-  .station {
-    position: relative; background: var(--panel); border: 1px solid var(--line);
-    border-left: 8px solid var(--line); border-radius: 6px; padding: 14px 16px;
-    text-align: left; color: inherit; font: inherit; cursor: pointer;
-  }
+  .resumen { display: flex; flex-wrap: wrap; gap: 28px; margin-bottom: 24px; color: var(--muted); }
+  .resumen b { display: block; font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-size: 2rem; line-height: 1.1; color: var(--text); }
+
+  .stations { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; margin-bottom: 36px; }
+  .station { background: var(--panel); border: 1px solid var(--line); border-left: 10px solid var(--ok);
+    border-radius: 6px; padding: 14px 16px; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+  .station.abierto { border-left-color: var(--alert); background: #5a1a22; }
   .station[aria-pressed="true"] { outline: 2px solid var(--signal); outline-offset: 2px; }
-  .station.recent { border-left-color: var(--signal); }
-  .station.flash { animation: flash 1.6s ease-out; }
-  @keyframes flash { 0% { background: var(--signal); color: #1a1300; } 100% { background: var(--panel); } }
-  .station h2 { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 1.5rem; margin: 0 0 4px; }
-  .station .last { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 2.4rem; font-weight: 700; line-height: 1.05; }
+  .station h2 { font-size: 1.5rem; margin: 0; }
+  .station .big { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 2.3rem;
+    font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .station .meta { color: var(--muted); font-size: .9rem; }
+  .station.abierto .meta { color: #ffd0cc; }
+  @media (prefers-reduced-motion: no-preference) {
+    .station.abierto { animation: pulso 2s ease-in-out infinite; }
+    @keyframes pulso { 50% { background: #7a1f29; } }
+  }
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
-  .toolbar h2 { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 1.6rem; margin: 0 auto 0 0; }
-  input, button.btn {
-    font: inherit; color: var(--text); background: var(--panel);
-    border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px;
-  }
+  .toolbar h2 { font-size: 1.6rem; margin: 0 auto 0 0; }
+  input, select, button.btn { font: inherit; color: var(--text); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; }
   button.btn { cursor: pointer; font-weight: 600; }
   button.btn:hover { border-color: var(--signal); }
   :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 
-  .table-box { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--navy-deep); }
-  table { width: 100%; border-collapse: collapse; min-width: 480px; }
-  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+  .table-box { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--deep); }
+  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th { color: var(--muted); font-weight: 500; font-size: .9rem; }
   tbody tr:last-child td { border-bottom: 0; }
-  td.code { font-weight: 600; font-variant-numeric: tabular-nums; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 99px; font-weight: 600; font-size: .85rem; }
+  .tag.abierto { background: var(--alert); color: #fff; }
+  .tag.cerrado { background: transparent; border: 1px solid var(--ok); color: var(--ok); }
   .empty { padding: 32px 14px; color: var(--muted); text-align: center; }
-
-  @media (prefers-reduced-motion: reduce) { .station.flash { animation: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>Tablero Andon</h1>
+    <h1 class="cond">Tablero Andon</h1>
     <div class="status" id="status" data-s="wait"><span class="dot"></span><span id="statusText">Conectando…</span></div>
   </header>
+
+  <div class="resumen">
+    <div><b id="rAbiertos">0</b>tickets abiertos</div>
+    <div><b id="rHoy">0</b>tickets hoy</div>
+    <div><b id="rProm">—</b>duración promedio hoy</div>
+  </div>
 
   <section class="stations" id="stations" aria-label="Estaciones"></section>
 
   <section>
     <div class="toolbar">
-      <h2 id="listTitle">Todos los registros</h2>
-      <input id="search" type="search" placeholder="Buscar código" aria-label="Buscar código">
+      <h2 class="cond" id="listTitle">Historial de tickets</h2>
+      <input id="search" type="search" placeholder="Buscar falla u operador" aria-label="Buscar">
+      <select id="estado" aria-label="Estado">
+        <option value="">Todos</option>
+        <option value="abierto">Abiertos</option>
+        <option value="cerrado">Cerrados</option>
+      </select>
       <button class="btn" id="clearFilter" hidden>Ver todas las estaciones</button>
       <button class="btn" id="csv">Descargar CSV</button>
     </div>
     <div class="table-box">
       <table>
-        <thead><tr><th>Hora</th><th>Estación</th><th>Código</th></tr></thead>
+        <thead><tr>
+          <th>Inicio</th><th>Estación</th><th>Falla</th><th>Operador</th>
+          <th>Estado</th><th>Duración</th><th>Cerró</th><th>Cierre</th>
+        </tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
@@ -114,21 +110,25 @@
 <script>
 // ===== CONFIGURACION =====
 const FIREBASE_URL = "https://andon-d7b0b-default-rtdb.firebaseio.com";
-const RUTA = "tickets";          // misma ruta que usa el ESP32
-const MAX_REGISTROS = 500;       // cuantos registros recientes cargar
-const MINUTOS_RECIENTE = 10;     // una estación se marca en amarillo si reportó hace menos de esto
+const RUTA = "tickets";
+const MAX_REGISTROS = 500;
+
+// Opcional: nombre de cada falla. Ejemplo: "12": "Falta de material"
+const FALLAS = {
+  "11": "Falta de material",
+  "12": "Falta de herramienta",
+};
 
 // ===== ESTADO =====
-let datos = {};                  // { pushId: {andon, codigo, hora} }
+let datos = {};
 let filtroAndon = null;
-let cargaInicial = true;
 
 const $ = (id) => document.getElementById(id);
 const fmt = new Intl.DateTimeFormat("es-MX", { dateStyle: "short", timeStyle: "medium" });
 
 function setStatus(s, txt) { $("status").dataset.s = s; $("statusText").textContent = txt; }
 
-// ===== CONEXION EN TIEMPO REAL (REST streaming de Firebase) =====
+// ===== CONEXION EN TIEMPO REAL =====
 function conectar() {
   const q = `orderBy=${encodeURIComponent('"$key"')}&limitToLast=${MAX_REGISTROS}`;
   const es = new EventSource(`${FIREBASE_URL}/${RUTA}.json?${q}`);
@@ -138,77 +138,129 @@ function conectar() {
     if (path === "/") {
       datos = data || {};
     } else {
-      const partes = path.split("/").filter(Boolean);
-      const id = partes[0];
-      if (partes.length === 1) {
-        if (data === null) delete datos[id];
-        else { datos[id] = data; if (!cargaInicial) destellar(data.andon); }
+      const p = path.split("/").filter(Boolean);
+      if (p.length === 1) {
+        if (data === null) delete datos[p[0]]; else datos[p[0]] = data;
       } else {
-        datos[id] = { ...(datos[id] || {}), [partes[1]]: data };
+        datos[p[0]] = { ...(datos[p[0]] || {}), [p[1]]: data };
       }
     }
-    cargaInicial = false;
     setStatus("ok", "En vivo");
     render();
   });
 
   es.addEventListener("patch", (ev) => {
     const { path, data } = JSON.parse(ev.data);
-    if (path === "/" && data) { Object.assign(datos, data); render(); }
+    const p = path.split("/").filter(Boolean);
+    if (p.length === 0) Object.assign(datos, data);
+    else datos[p[0]] = { ...(datos[p[0]] || {}), ...data };
+    render();
   });
 
   es.addEventListener("cancel", () => setStatus("err", "Sin permiso de lectura. Revisa las reglas de Firebase."));
   es.onerror = () => setStatus("err", "Conexión perdida, reintentando…");
 }
 
-// ===== RENDER =====
+// ===== UTILIDADES =====
 function lista() {
-  return Object.entries(datos)
-    .map(([id, r]) => ({ id, andon: r.andon || "?", codigo: String(r.codigo ?? ""), hora: Number(r.hora) || 0 }))
-    .sort((a, b) => b.hora - a.hora);
+  return Object.entries(datos).map(([id, t]) => ({
+    id,
+    andon: t.andon || "?",
+    falla: String(t.falla ?? ""),
+    operador: String(t.operador ?? ""),
+    cerro: String(t.cerro ?? ""),
+    estado: t.estado === "cerrado" ? "cerrado" : "abierto",
+    inicio: Number(t.hora_inicio) || 0,
+    cierre: Number(t.hora_cierre) || 0,
+    duracion: Number(t.duracion_seg) || 0,
+  })).sort((a, b) => b.inicio - a.inicio);
 }
 
+function dur(seg) {
+  seg = Math.max(0, Math.floor(seg));
+  const h = Math.floor(seg / 3600), m = Math.floor(seg % 3600 / 60), s = seg % 60;
+  const mm = String(m).padStart(2, "0"), ss = String(s).padStart(2, "0");
+  return h ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
+function nombreFalla(f) { return FALLAS[f] ? `${f} · ${FALLAS[f]}` : f; }
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ===== RENDER =====
 function render() {
   const todos = lista();
-
-  // Tarjetas por estación
-  const porAndon = {};
-  for (const r of todos) {
-    const s = porAndon[r.andon] ||= { total: 0, ultimo: r };
-    s.total++;
-  }
   const ahora = Date.now();
-  $("stations").innerHTML = Object.keys(porAndon).sort().map((a) => {
-    const s = porAndon[a];
-    const reciente = ahora - s.ultimo.hora < MINUTOS_RECIENTE * 60000;
-    return `<button class="station ${reciente ? "recent" : ""}" data-andon="${esc(a)}"
-              aria-pressed="${filtroAndon === a}">
-              <h2>${esc(a)}</h2>
-              <div class="last">${esc(s.ultimo.codigo)}</div>
-              <div class="meta">${s.ultimo.hora ? fmt.format(s.ultimo.hora) : "sin hora"} · ${s.total} registros</div>
-            </button>`;
-  }).join("") || `<p class="meta">Aún no hay estaciones reportando.</p>`;
+
+  // Resumen
+  const inicioHoy = new Date(); inicioHoy.setHours(0, 0, 0, 0);
+  const hoy = todos.filter((t) => t.inicio >= inicioHoy.getTime());
+  const cerradosHoy = hoy.filter((t) => t.estado === "cerrado" && t.duracion);
+  $("rAbiertos").textContent = todos.filter((t) => t.estado === "abierto").length;
+  $("rHoy").textContent = hoy.length;
+  $("rProm").textContent = cerradosHoy.length
+    ? dur(cerradosHoy.reduce((s, t) => s + t.duracion, 0) / cerradosHoy.length) : "—";
+
+  // Estaciones
+  const est = {};
+  for (const t of todos) {
+    const e = est[t.andon] ||= { ultimo: t, abierto: null, total: 0 };
+    e.total++;
+    if (t.estado === "abierto" && !e.abierto) e.abierto = t;
+  }
+  $("stations").innerHTML = Object.keys(est).sort().map((a) => {
+    const e = est[a];
+    const pressed = filtroAndon === a;
+    if (e.abierto) {
+      const t = e.abierto;
+      return `<button class="station abierto" data-andon="${esc(a)}" aria-pressed="${pressed}">
+        <h2 class="cond">${esc(a)}</h2>
+        <div class="big" data-inicio="${t.inicio}">${dur((ahora - t.inicio) / 1000)}</div>
+        <div class="meta">Falla ${esc(nombreFalla(t.falla))} · operador ${esc(t.operador)}</div>
+      </button>`;
+    }
+    const u = e.ultimo;
+    return `<button class="station" data-andon="${esc(a)}" aria-pressed="${pressed}">
+      <h2 class="cond">${esc(a)}</h2>
+      <div class="big">Operando</div>
+      <div class="meta">Último ticket: ${u.inicio ? fmt.format(u.inicio) : "—"} · ${e.total} en total</div>
+    </button>`;
+  }).join("") || `<p class="meta">Aún no hay estaciones con tickets.</p>`;
 
   // Tabla
-  const texto = $("search").value.trim();
-  const filtrados = todos.filter((r) =>
-    (!filtroAndon || r.andon === filtroAndon) && (!texto || r.codigo.includes(texto)));
-  $("rows").innerHTML = filtrados.length
-    ? filtrados.map((r) => `<tr><td>${r.hora ? fmt.format(r.hora) : "—"}</td><td>${esc(r.andon)}</td><td class="code">${esc(r.codigo)}</td></tr>`).join("")
-    : `<tr><td colspan="3" class="empty">No hay registros que coincidan. Prueba con otro código o quita el filtro.</td></tr>`;
+  const texto = $("search").value.trim().toLowerCase();
+  const estado = $("estado").value;
+  const filtrados = todos.filter((t) =>
+    (!filtroAndon || t.andon === filtroAndon) &&
+    (!estado || t.estado === estado) &&
+    (!texto || nombreFalla(t.falla).toLowerCase().includes(texto) || t.operador.includes(texto) || t.cerro.includes(texto)));
 
-  $("listTitle").textContent = filtroAndon ? `Registros de ${filtroAndon}` : "Todos los registros";
+  $("rows").innerHTML = filtrados.length ? filtrados.map((t) => `<tr>
+      <td class="num">${t.inicio ? fmt.format(t.inicio) : "—"}</td>
+      <td>${esc(t.andon)}</td>
+      <td>${esc(nombreFalla(t.falla))}</td>
+      <td class="num">${esc(t.operador)}</td>
+      <td><span class="tag ${t.estado}">${t.estado === "cerrado" ? "Cerrado" : "Abierto"}</span></td>
+      <td class="num" ${t.estado === "abierto" ? `data-inicio="${t.inicio}"` : ""}>
+        ${t.estado === "abierto" ? dur((ahora - t.inicio) / 1000) : dur(t.duracion)}</td>
+      <td class="num">${esc(t.cerro) || "—"}</td>
+      <td class="num">${t.cierre ? fmt.format(t.cierre) : "—"}</td>
+    </tr>`).join("")
+    : `<tr><td colspan="8" class="empty">No hay tickets que coincidan. Cambia la búsqueda o quita los filtros.</td></tr>`;
+
+  $("listTitle").textContent = filtroAndon ? `Tickets de ${filtroAndon}` : "Historial de tickets";
   $("clearFilter").hidden = !filtroAndon;
 }
 
-function destellar(andon) {
-  requestAnimationFrame(() => {
-    const el = document.querySelector(`.station[data-andon="${CSS.escape(andon || "?")}"]`);
-    if (el) { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+// Cronómetros de tickets abiertos (cada segundo, sin redibujar todo)
+setInterval(() => {
+  const ahora = Date.now();
+  document.querySelectorAll("[data-inicio]").forEach((el) => {
+    el.textContent = dur((ahora - Number(el.dataset.inicio)) / 1000);
   });
-}
-
-function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+}, 1000);
 
 // ===== EVENTOS =====
 $("stations").addEventListener("click", (e) => {
@@ -218,14 +270,18 @@ $("stations").addEventListener("click", (e) => {
 });
 $("clearFilter").addEventListener("click", () => { filtroAndon = null; render(); });
 $("search").addEventListener("input", render);
+$("estado").addEventListener("change", render);
 $("csv").addEventListener("click", () => {
-  const filas = [["fecha", "andon", "codigo"], ...lista().map((r) => [r.hora ? new Date(r.hora).toISOString() : "", r.andon, r.codigo])];
-  const csv = filas.map((f) => f.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const filas = [["inicio", "andon", "falla", "operador", "estado", "duracion_seg", "cerro", "cierre"],
+    ...lista().map((t) => [
+      t.inicio ? new Date(t.inicio).toLocaleString("es-MX") : "", t.andon, t.falla, t.operador,
+      t.estado, t.duracion, t.cerro, t.cierre ? new Date(t.cierre).toLocaleString("es-MX") : ""])];
+  const csv = "\uFEFF" + filas.map((f) => f.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-  a.download = "andon.csv"; a.click();
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = "tickets_andon.csv";
+  a.click();
 });
-setInterval(render, 60000);   // refresca el color "reciente" cada minuto
 
 conectar();
 </script>
